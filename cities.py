@@ -4,10 +4,12 @@ import os
 import sys
 import csv
 import json
+import math
 import mmds
 import random
 import logging
 import traceback
+import numpy as np
 
 def get_distance(left, right):
     distance = 0.0
@@ -23,8 +25,12 @@ try:
             if (dimensions < 2):
                 sys.exit()
             bounds = []
+            minimums = []
+            maximums = []
             for i in range(dimensions):
-                bounds.append(int(sys.argv[2+i]))
+                bounds.append(int(sys.argv[3+i]))
+                minimums.append(math.inf)
+                maximums.append(-math.inf)
             cities = []
             with open(sys.argv[1], "r") as descriptor:
                 lines = descriptor.readlines()
@@ -34,7 +40,22 @@ try:
                     if (city in cities):
                         continue
                     cities.append(city)
-            print(str(cities))
+            roads = {}
+            for city in cities:
+                if not (city in roads):
+                    roads[city] = {}
+                for other in cities:
+                    if not (other in roads):
+                        roads[other] = {}
+                    if (city == other):
+                        roads[city][other] = True
+                        continue
+                    if (float(random.randint(0, len(cities))) < (float(len(cities))**0.5)*0.5):
+                        roads[city][other] = True
+                        roads[other][city] = True
+                    else:
+                        roads[city][other] = False
+                        roads[other][city] = False
             if not (os.path.exists(sys.argv[1]+".csv")):
                 positions = {}
                 for city in cities:
@@ -107,14 +128,15 @@ try:
                     descriptor.write(line.strip()+"\n")
                 descriptor.close()
             frame = mmds.read_dm(target)
-            space = mmds.Space(frame)
+            space = mmds.Space(frame, dimensions)
             print(str(space.ndim))
             active = space.active
             target += ".csv"
             with open(target, "w") as descriptor:
                 descriptor.write(active.to_csv())
                 descriptor.close()
-            vectors = {}
+            vectors = []
+            cities = []
             size = 0
             with open(target, "r") as descriptor:
                 reader = csv.DictReader(descriptor)
@@ -127,8 +149,40 @@ try:
                     size = len(keys)
                     vector = []
                     for i in range(len(keys)):
+                        if (i > dimensions):
+                            break
                         vector.append(float(row[keys[i]]))
-                    vectors[row[key]] = vector
+                        if (vector[i] > maximums[i]):
+                            maximums[i] = vector[i]
+                        if (vector[i] < minimums[i]):
+                            minimums[i] = vector[i]
+                    vectors.append(vector)
+                    cities.append(row[key])
+            for i in range(len(vectors)):
+                vector = vectors[i]
+                for j in range(len(vector)):
+                    vector[j] = ((vector[j]-minimums[j])/(maximums[j]-minimums[j]))*float(bounds[j])
+                vectors[i] = vector
+            target += ".dot"
+            writes = []
+            with open(target, "w") as descriptor:
+                descriptor.write("graph G {\n")
+                for i in range(len(cities)):
+                    descriptor.write("\t"+cities[i]+" [pos=\""+str(int(vectors[i][0]))+","+str(int(vectors[i][1]))+"\"]\n")
+                    road = 0
+                    for city in cities:
+                        if (city == cities[i]):
+                            continue
+                        if (roads[city][cities[i]]):
+                            road += 1
+                            if ((city+cities[i] in writes) or (cities[i]+city in writes)):
+                                continue
+                            writes.append(city+cities[i])
+                            descriptor.write("\t"+cities[i]+" -- "+city+"\n")
+                    if (road == 0):
+                        descriptor.write("\t"+cities[i]+" -- "+cities[random.randint(0, len(cities)-1)]+"\n")
+                descriptor.write("}\n")
+                descriptor.close()
 except:
     logging.error(traceback.format_exc())
 

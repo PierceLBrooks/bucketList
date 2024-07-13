@@ -1,1 +1,2 @@
 git+https://github.com/PierceLBrooks/pymmds.git@master
+scipy>=1.14.0
