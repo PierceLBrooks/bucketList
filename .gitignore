@@ -1,4 +1,1 @@
-*.tsv
-*.csv
-*.dot
 __pycache__/*

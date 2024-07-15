@@ -1,0 +1,21 @@
+[
+{
+	"name": "Circleville",
+	"locations": [
+	{
+		"name": "The Squircle",
+		"description": "It's the world's squarest circle.",
+		"attraction": true,
+		"x": 25,
+		"y": 25
+	},
+	{
+		"name": "your apartment",
+		"description": "The air in here is a bit stale.",
+		"attraction": false,
+		"x": 5,
+		"y": 5
+	}
+	]
+}
+]
